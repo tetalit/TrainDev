@@ -3,18 +3,19 @@
 // Конструктор
 Train::Train(unsigned char _number)
 {
+  number = _number;
 }
 
 // Конструктор с указанными параметрами
-Train::Train(unsigned char _number, std::vector<TrainCmd> _commands)
-{
-}
+// Train::Train(unsigned char _number, std::vector<TrainCmd> _commands)
+// {
+// }
 
 // Задать команду(итератор)
 bool Train::SetCommandIterator(unsigned char _command_it)
 {
   // Если итератор лежит в допустимых пределах
-  if (_command_it < commands.size() && _command_it > 0)
+  if (_command_it < commands.size() && _command_it >= 0)
   {
     iterator = _command_it;
     return true;

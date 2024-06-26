@@ -3,6 +3,8 @@
 // Обработка прерывания таймера
 void IRAM_ATTR OnTimerISR()
 {
+  // if (clock_flag)
+  // {
   timerWrite(DCC_timer, passInterval);
   if (pass)
   {
@@ -41,87 +43,91 @@ void IRAM_ATTR OnTimerISR()
         }
       }
     }
-    else
+  }
+  else
+  {
+    // Смена потенциалов
+    gpio_set_level(RAIL_L, 0);
+    gpio_set_level(RAIL_R, 1);
+    pass = 0x01;
+    // По умолчанию передача 1
+    passInterval = ONE;
+    // Если передается преамбула
+    if (preamble > 0x00)
+      preamble >>= 0x01;
+    // Иначе передача команды
+    else if (lengthCMD >= 3)
     {
-      // Смена потенциалов
-      gpio_set_level(RAIL_L, 0);
-      gpio_set_level(RAIL_R, 1);
-      pass = 0x01;
-      // По умолчанию передача 1
-      passInterval = ONE;
-      // Если передается преамбула
-      if (preamble > 0x00)
-        preamble >>= 0x01;
-      // Иначе передача команды
-      else if (command_ready)
+      // Если команда еще передается
+      if (iteratorCMD != lengthCMD)
       {
-        // Если команда еще передается
-        if (iteratorCMD != lengthCMD)
+        // Передача 0 между байтами команды
+        if (iteratorBitCMD == 0x00)
         {
-          // Передача 0 между байтами команды
-          if (iteratorBitCMD == 0x00)
-          {
-            // Передача 0
-            passInterval = ZERO;
-            // Установить передачу бита
-            iteratorBitCMD = 0x80;
-          }
-          // Передача команды
-          else
-          {
-            // Проверяем по битам
-            passInterval = (command[iteratorCMD] & iteratorBitCMD) ? ONE : ZERO;
-            // Следующий
-            iteratorBitCMD >>= 0x01;
-            // Последний бит
-            if (iteratorBitCMD == 0x00)
-              ++iteratorCMD;
-          }
+          // Передача 0
+          passInterval = ZERO;
+          // Установить передачу бита
+          iteratorBitCMD = 0x80;
         }
-        // Команда передана
+        // Передача команды
         else
         {
-          // Передача 1, Конец команды
-          passInterval = ONE;
-          // Устанавливаем преамбуду
-          preamble = LENGTH_PREAMBLE;
-          // Сброс указателя команды
-          iteratorCMD = 0x00;
-          // Если есть повторы, повторять команду
-          if (repeatSend)
-          {
-            repeatSend--;
-          }
-          // Иначе другая команда
-          else
-          {
-            lengthCMD = 0x00;
-          }
+          // Проверяем по битам
+          passInterval = (command[iteratorCMD] & iteratorBitCMD) ? ONE : ZERO;
+          // Следующий
+          iteratorBitCMD >>= 0x01;
+          // Последний бит
+          if (iteratorBitCMD == 0x00)
+            ++iteratorCMD;
+        }
+      }
+      // Команда передана
+      else
+      {
+        // Передача 1, Конец команды
+        passInterval = ONE;
+        // Устанавливаем преамбуду
+        preamble = LENGTH_PREAMBLE;
+        // Сброс указателя команды
+        iteratorCMD = 0x00;
+        // Если есть повторы, повторять команду
+        if (repeatSend)
+        {
+          repeatSend--;
+        }
+        // Иначе другая команда
+        else
+        {
+          lengthCMD = 0x00;
         }
       }
     }
   }
+  // }
 }
 
 // Прерывание от часов
 void IRAM_ATTR CLOCKINT()
 {
-  if (millis() - timer_to_clock > 500)
+  if (esp_timer_get_time() - timer_to_clock > 500)
   {
+    digitalWrite(CLOCK_SIGNAL_INT, !digitalRead(CLOCK_SIGNAL_INT));
     // Флаг начала работы депо
     clock_flag = true;
+    // Флаг выполнения задач сразу после прерывания
+    first_task_flag = true;
     // Сброс флага ошибки
-    error_flag = false;
+    // error_flag = false;
     // Сброс метки
     t_uid = 0;
     // Запуск таймера с параметрами
     timerWrite(DCC_timer, passInterval);
     // Сброс таймера времени работы депо
-    timer_work = millis();
+    timer_work = esp_timer_get_time();
     // Сброс таймера-ограничения на срабатывание сигнала
-    timer_to_clock = millis();
+    timer_to_clock = esp_timer_get_time();
     // Сброс таймера превышения допустимого времени работы
-    timer_error = millis();
+    // timer_error = millis();
   }
 }
 
@@ -169,43 +175,59 @@ void setup()
   wifi_m.InitUDP();
 
   // Конфигурация GPIO
+  // Выходны на рельсы
   gpio_pad_select_gpio(RAIL_L);
   gpio_set_direction(RAIL_L, GPIO_MODE_OUTPUT);
   gpio_pad_select_gpio(RAIL_R);
   gpio_set_direction(RAIL_R, GPIO_MODE_OUTPUT);
 
-  gpio_pad_select_gpio(CLOCK_PIN);
-  gpio_set_direction(RAIL_R, GPIO_MODE_INPUT);
+  // Входя для питания с подтяжкой
+  pinMode(CLOCK_PIN, INPUT_PULLUP);
+  // gpio_pad_select_gpio(CLOCK_PIN);
+  // gpio_set_direction(CLOCK_PIN, GPIO_MODE_INPUT);
+  // gpio_set_pull_mode(CLOCK_PIN, GPIO_PULLUP_ONLY);
+
+  // Устаревший пин часов, конфигурирую на вход на всякий случай
+  pinMode(CLOCK_PIN_PHYS, INPUT);
+  // gpio_pad_select_gpio(CLOCK_PIN_PHYS);
+  // gpio_set_direction(CLOCK_PIN_PHYS, GPIO_MODE_INPUT);
+
+  // Настройка сигального светодиода
+  pinMode(CLOCK_SIGNAL_INT, OUTPUT);
+  // gpio_pad_select_gpio(CLOCK_SIGNAL_INT);
+  // gpio_set_direction(CLOCK_SIGNAL_INT, GPIO_MODE_OUTPUT);
+
+  // pinMode(34, INPUT_PULLUP);
 
   Serial.println("GPIO сконфигурированы");
 
   trains.push_back(Train(1));
 
-  TrainCmd cmd(1, 0, 1, 0, 0, 0, 0, 0, 0);
-  TrainCmd cmd1(1, 1, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd(1, 2, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd1(1, 5, 1, 0, 0, 0, 0, 0, 0);
   TrainCmd cmd2(1, 0, 1, 0, 0, 0, 0, 0, 0);
-  TrainCmd cmd3(1, 1, 1, 0, 0, 0, 0, 0, 0);
 
   trains.at(0).AddCmd(cmd);
   trains.at(0).AddCmd(cmd1);
   trains.at(0).AddCmd(cmd2);
-  trains.at(0).AddCmd(cmd3);
 
   Serial.printf("Количество поездов: %s\n", String(trains.size()));
 
   // Конфигурация таймера
-  DCC_timer = timerBegin(0, 16, false);
+  DCC_timer = timerBegin(1, 16, false);
   timerAttachInterrupt(DCC_timer, &OnTimerISR, true);
   timerAlarmWrite(DCC_timer, 0, true);
-  timerAlarmEnable(DCC_timer);
-  timerWrite(DCC_timer, 600);
+  timerAlarmDisable(DCC_timer);
+  // timerAlarmEnable(DCC_timer);
+  // timerWrite(DCC_timer, 600);
   Serial.println("Таймер настроен");
 
   // Активация прерывания на ножке часов
-  attachInterrupt(digitalPinToInterrupt(CLOCK_PIN), CLOCKINT, RISING);
+  attachInterrupt(CLOCK_PIN, CLOCKINT, FALLING);
   Serial.println("Прерывния с часов активно");
 
   timer_send = millis();
+  timer_to_clock = millis();
 
   delay(2000);
 
@@ -215,53 +237,99 @@ void setup()
 
 void loop()
 {
-  // if (millis() - timer_send > 1000)
-  // {
+  if (clock_flag)
+  {
+    if (first_task_flag)
+    {
+      timerAlarmEnable(DCC_timer);
+      timerWrite(DCC_timer, passInterval);
+      trains.at(0).SetCommandIterator(0);
+      delay(5000);
+      arrows.SetDirection(3, RIGHT);
+      first_task_flag = false;
+    }
 
-  //   wifi_m.CheckCountClients();
-  //   SendsCommands();
-  //   Serial.print("Текущий поезд: 0, текущая команда: ");
-  //   Serial.println(CommandTrainToString(trains.at(0).GetCurCmd()));
-  //   // for (size_t i = 0; i < 4; i++)
-  //   // {
-  //   //   Serial.printf("%s, ", String(traffics.at(0).GetCurCmd().trafficLeds[i]));
-  //   // }
-  //   // Serial.println();
-  //   timer_send = millis();
-  // }
+    if (millis() - timer_send > 1000)
+    {
 
-  // t_uid = wifi_m.CheckPacket();
-  // wifi_m.GetPacket();
+      wifi_m.CheckCountClients();
+      SendsCommands();
+      Serial.print("Текущий поезд: ");
+      Serial.print(String(trains.at(0).GetNum()));
+      Serial.print(", текущая команда: ");
+      Serial.println(CommandTrainToString(trains.at(0).GetCurCmd()));
+      // for (size_t i = 0; i < 4; i++)
+      // {
+      //   Serial.printf("%s, ", String(traffics.at(0).GetCurCmd().trafficLeds[i]));
+      // }
+      // Serial.println();
+      timer_send = millis();
+    }
 
-  // // Логика
-  // // Если пришла команда от часов
-  // if (clock_flag == true)
-  // {
-  //   // Переключаемся на следующую команду - двжиение
-  //   trains.at(0).NextCommand();
+    t_uid = wifi_m.CheckPacket();
+    if (t_uid != 0)
+    {
+      t_uid = wifi_m.GetPacket()[0];
+      wifi_m.ClearUDPBuffer();
+    }
 
-  //   // Если была считана первая метка
-  //   if (t_uid == 0x00)
-  //   {
-  //     // Переключаемся на следующую команду - остановка
-  //     trains.at(0).NextCommand();
-  //     // Ожидание 30 сек
-  //     delay(30000);
-  //     // Продолжаем движение
-  //     trains.at(0).NextCommand();
-  //   }
-  //   // Если была считана финальная метка - остановка
-  //   else if (t_uid == 0x01)
-  //   {
-  //     // Сбрасываем итератор на команду остановки
-  //     trains.at(0).SetCommandIterator(0);
-  //   }
-  // }
+    // Если была считана первая метка
+    if (t_uid == 128)
+    {
+      // Переключаемся на следующую команду - остановка
+      trains.at(0).SetCommandIterator(1);
+      arrows.SetDirection(3, LEFT);
 
-  arrows.SetDirection(3, LEFT);
-  delay(3000);
-  arrows.SetDirection(3, RIGHT);
-  delay(3000);
+      traffics.SetLight(6, 1, ON);
+      traffics.SetLight(6, 2, ON);
+      traffics.SetLight(6, 3, OFF);
+      traffics.SetLight(6, 4, OFF);
+    }
+    // Если была считана финальная метка - остановка
+    else if (t_uid == 75)
+    {
+      // Сбрасываем итератор на команду остановки
+      trains.at(0).SetCommandIterator(0);
+      arrows.SetDirection(3, RIGHT);
 
-  // delay(5000);
+      traffics.SetLight(6, 1, OFF);
+      traffics.SetLight(6, 2, OFF);
+      traffics.SetLight(6, 3, ON);
+      traffics.SetLight(6, 4, ON);
+    }
+    // Если была считана финальная метка - остановка
+    else if (t_uid == 30)
+    {
+      // Сбрасываем итератор на команду остановки
+      trains.at(0).SetCommandIterator(2);
+      arrows.SetDirection(3, LEFT);
+
+      traffics.SetLight(6, 1, OFF);
+      traffics.SetLight(6, 2, OFF);
+      traffics.SetLight(6, 3, OFF);
+      traffics.SetLight(6, 4, OFF);
+
+      is_end = true;
+      timer_is_end = millis();
+    }
+    if (t_uid != 0)
+    {
+      Serial.print("UID: ");
+      Serial.println(t_uid);
+    }
+    t_uid = 0;
+  }
+
+  if (is_end)
+  {
+    if (millis() - timer_is_end > 1000)
+    {
+      timerAlarmDisable(DCC_timer);
+      clock_flag = false;
+      is_end = false;
+      digitalWrite(RAIL_L, LOW);
+      digitalWrite(RAIL_R, LOW);
+      wifi_m.ClearUDPBuffer();
+    }
+  }
 }

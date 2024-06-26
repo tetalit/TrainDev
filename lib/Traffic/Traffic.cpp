@@ -24,7 +24,7 @@ void Traffic::SetLight(unsigned char _number, unsigned char _light, unsigned cha
   // Номера огней от 1 до 7
   _light %= 0x08;
   // Устанавливаем режим работы
-  commandsList[writing_command_it] = (_state) ? (1UL << 0x0F) | _light : _light;
+  commandsList[writing_command_it] |= (((_state) ? (1UL << 0x03) | _light : _light) << 0x08);
   // Изменение номера указателя
   if (++writing_command_it >= MAX_CMD_COUNT)
     writing_command_it = 0x00;
@@ -48,11 +48,13 @@ void Traffic::CreateDCCCommand(volatile unsigned char *_command, volatile unsign
   _command[_lengthCMD] |= ((commandsList[reading_command_it] & 0xFF) >> 0x04) & 0x70;
   ++_lengthCMD;
   // Устанавливаем вкл/выкл света светофора
-  _command[_lengthCMD] = (commandsList[reading_command_it] >> 0x0F) | 0x80;
+  _command[_lengthCMD] = (commandsList[reading_command_it] >> 0x08) | 0x80;
   ++_lengthCMD;
   // Рассчитываем контрольную сумму
   _lengthCMD = CalcCRC(_command, _lengthCMD);
   // Изменяем номер итератора
-  if (++reading_command_it >= MAX_CMD_COUNT)
-    reading_command_it = 0x00;
+  // Принудительно задаем тот же номер, что и для записываемого элемента
+  reading_command_it = writing_command_it;
+  // if (++reading_command_it >= MAX_CMD_COUNT)
+  //   reading_command_it = 0x00;
 }

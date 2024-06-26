@@ -9,8 +9,12 @@
 
 // Флаг прерывания от часов
 volatile bool clock_flag = false;
+// Флаг выполнения задач сразу после прерывания
+volatile bool first_task_flag = false;
+// Флаг завершения работы 
+volatile bool is_end = false;
 // Флаг ошибки по времени
-volatile bool error_flag = false;
+// volatile bool error_flag = false;
 // Переменная состояния конечного автомата работы депо
 unsigned char state = 0;
 // Номер первой считанной метки
@@ -29,8 +33,10 @@ unsigned int timer_to_clock = 0;
 unsigned int timer_loop = 0;
 // Таймер времени работы депо
 unsigned int timer_work = 0;
+// Таймер завершения работы 
+unsigned int timer_is_end = 0;
 // Время для проезда поезда. Если превышено - взводится флаг ошибки
-unsigned int timer_error = 0;
+// unsigned int timer_error = 0;
 // Таймер отправки команд
 unsigned int send_timer = 0;
 // Таймер для DCC

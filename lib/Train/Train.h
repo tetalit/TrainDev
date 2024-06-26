@@ -20,7 +20,7 @@ public:
       // Конструктор с номером
       Train(unsigned char _number);
       // Конструктор с номером и командами
-      Train(unsigned char _number, std::vector<TrainCmd> _commands);
+      // Train(unsigned char _number, std::vector<TrainCmd> _commands);
 
 public:
       // Задать команду(итератор)
