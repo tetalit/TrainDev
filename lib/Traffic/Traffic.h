@@ -1,7 +1,6 @@
 #ifndef __TRAFFIC_H_
 #define __TRAFFIC_H_
 
-#include "TrafficCmd.h"
 #include "DCCDeviceBase.h"
 
 // Класс светофора
@@ -24,6 +23,9 @@ public:
 
       // Формирование DCC команды для стрелочного перевода
       void CreateDCCCommand(volatile unsigned char *_command, volatile unsigned char &_lengthCMD);
+
+      // Сформировать команду по заданным параметрам и отобразить на экране
+      void ShowCommand();
 };
 
 #endif //__TRAFFIC_H_

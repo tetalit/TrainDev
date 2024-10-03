@@ -1,4 +1,99 @@
-#include "main.h"
+#include "Train.h"
+#include "Arrow.h"
+#include "Traffic.h"
+#include <Arduino.h>
+#include "WiFiManager.h"
+#include <esp_system.h>
+#include <Udp.h>
+#include <rom/ets_sys.h>
+// !!! ДЛЯ РАБОТЫ В MAIN !!! //
+
+// Флаг прерывания от часов
+volatile bool clock_flag = false;
+// Флаг выполнения задач сразу после прерывания
+volatile bool first_task_flag = false;
+// Флаг завершения работы 
+volatile bool is_end = false;
+// Фоаг ожидания поезда
+bool is_stop = false;
+// Флаг ошибки по времени
+// volatile bool error_flag = false;
+// Переменная состояния конечного автомата работы депо
+unsigned char state = 0;
+// Номер первой считанной метки
+unsigned char first_read_uid;
+// Временная переменная метки
+unsigned char t_uid = 0;
+int stop_counter = 0;
+
+// !!! ДЛЯ РАБОТЫ В MAIN !!! //
+
+// !!! ТАЙМЕРЫ !!! //
+// Таймер рассылки
+unsigned int timer_send = 0;
+// Таймер для исключения двойного сигнала от часов
+unsigned int timer_to_clock = 0;
+// Таймер общего назначения. Используется в разных местах основного цикла работы
+unsigned int timer_loop = 0;
+// Таймер времени работы депо
+unsigned int timer_work = 0;
+// Таймер завершения работы 
+unsigned int timer_is_end = 0;
+// Таймер ожидания поезда
+unsigned int timer_stop = 0;
+unsigned int timer_stop_2 = 0;
+unsigned int timer_stop_3 = 0;
+// Время для проезда поезда. Если превышено - взводится флаг ошибки
+// unsigned int timer_error = 0;
+// Таймер отправки команд
+unsigned int send_timer = 0;
+// Таймер для DCC
+hw_timer_t *DCC_timer = NULL;
+
+// !!! ТАЙМЕРЫ !!! //
+
+WiFiManager wifi_m;
+bool driver_work = false;
+
+// !!! ИЗ DCC !!! //
+
+// Объект для работы со стрелочными переводами
+Arrow arrows;
+// Объект для работы со светофорами
+Traffic traffics;
+// Объект для работы с поездами
+std::vector<Train> trains;
+// Полупериод одного бита
+volatile unsigned int passInterval = ONE;
+
+// Передаваемая команда
+volatile unsigned char command[MAX_SEND_CMD_LENGTH];
+
+// Флаг готовности команды к передаче
+volatile bool command_ready = false;
+// Длина передаваемой команды
+volatile unsigned char lengthCMD;
+// Указатель передачи одного бита команды
+volatile unsigned char pass = 0x00;
+// Количество переданных байт команды
+volatile unsigned char iteratorCMD = 0x00;
+// Указатель на передаваемый бит
+volatile unsigned char iteratorBitCMD = 0x00;
+// Колличество повторов команды
+volatile unsigned short repeatSend = 0x00;
+// Прембула между командами
+volatile unsigned short preamble = LENGTH_PREAMBLE;
+// Переключение между устройствами для формирования команд
+volatile unsigned char switchDevice = 0;
+
+// Итератор стрелочных переводов
+volatile unsigned char arrowIterator = 0;
+// Итератор светофоров
+volatile unsigned char trafficIterator = 0;
+// Итератор для светодиодов светофора
+volatile unsigned char ledsTrafficIterator = 0;
+// первое включение светофоров
+uint8_t traffics_first_itr = 1;
 
 // Обработка прерывания таймера
 void IRAM_ATTR OnTimerISR()
@@ -166,7 +261,7 @@ void SendsCommands()
 void setup()
 {
   // Инициализация COM порта
-  Serial.begin(115200);
+  Serial.begin(921600);
   Serial.printf("Serial port запущен на скорости %d\n", Serial.baudRate());
 
   // Создание точки доступа
@@ -202,14 +297,19 @@ void setup()
   Serial.println("GPIO сконфигурированы");
 
   trains.push_back(Train(1));
+  trains.push_back(Train(2));
 
-  TrainCmd cmd(1, 2, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd(1, 0, 1, 0, 0, 0, 0, 0, 0);
   TrainCmd cmd1(1, 5, 1, 0, 0, 0, 0, 0, 0);
-  TrainCmd cmd2(1, 0, 1, 0, 0, 0, 0, 0, 0);
+  // TrainCmd cmd2(1, 0, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd2_0(1, 0, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd2_1(1, 5, 1, 0, 0, 0, 0, 0, 0);
 
   trains.at(0).AddCmd(cmd);
   trains.at(0).AddCmd(cmd1);
-  trains.at(0).AddCmd(cmd2);
+  // trains.at(0).AddCmd(cmd2);
+  trains.at(1).AddCmd(cmd2_0);
+  trains.at(1).AddCmd(cmd2_1);
 
   Serial.printf("Количество поездов: %s\n", String(trains.size()));
 
@@ -218,8 +318,8 @@ void setup()
   timerAttachInterrupt(DCC_timer, &OnTimerISR, true);
   timerAlarmWrite(DCC_timer, 0, true);
   timerAlarmDisable(DCC_timer);
-  // timerAlarmEnable(DCC_timer);
-  // timerWrite(DCC_timer, 600);
+  timerAlarmEnable(DCC_timer);
+  timerWrite(DCC_timer, 600);
   Serial.println("Таймер настроен");
 
   // Активация прерывания на ножке часов
@@ -233,25 +333,44 @@ void setup()
 
   // Сбрасываем команду для поезда
   trains.at(0).SetCommandIterator(0);
+  trains.at(1).SetCommandIterator(0);
+
+  // Первое включение светофоров
+  for(int i = 0; i <= 3; i++){
+      traffics.SetLight(1, 1, ON); // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
+      delay(250);
+      traffics.SetLight(2, 2, ON);
+      delay(250);
+      traffics.SetLight(3, 2, ON);
+      delay(250);
+      traffics.SetLight(4, 1, ON);
+      traffics.ShowCommand();
+      }
 }
+
+//unsigned char tr_num = 3;
+
+bool dir = false;
 
 void loop()
 {
+
   if (clock_flag)
   {
     if (first_task_flag)
     {
       timerAlarmEnable(DCC_timer);
       timerWrite(DCC_timer, passInterval);
-      trains.at(0).SetCommandIterator(0);
+      trains.at(0).SetCommandIterator(1);
+      trains.at(1).SetCommandIterator(1);
       delay(5000);
-      arrows.SetDirection(3, RIGHT);
       first_task_flag = false;
     }
 
     if (millis() - timer_send > 1000)
     {
-
+      //arrows.SetDirection(3,dir);
+      dir^=1;
       wifi_m.CheckCountClients();
       SendsCommands();
       Serial.print("Текущий поезд: ");
@@ -265,6 +384,15 @@ void loop()
       // Serial.println();
       timer_send = millis();
     }
+    // if(traffics_first_itr == 1)
+    // {
+    //   traffics.SetLight(1, 1, ON); // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
+    //   traffics.SetLight(2, 2, ON);
+    //   traffics.SetLight(3, 2, ON);
+    //   traffics.SetLight(4, 1, ON);
+    //   traffics.ShowCommand();
+    //   traffics_first_itr = 0;
+    // }
 
     t_uid = wifi_m.CheckPacket();
     if (t_uid != 0)
@@ -272,46 +400,113 @@ void loop()
       t_uid = wifi_m.GetPacket()[0];
       wifi_m.ClearUDPBuffer();
     }
+     
+    // П2 доехал до м10 
+    if (t_uid == 30){
+      //trains.at(1).SetCommandIterator(0);
+      traffics.SetLight(4, 3, ON);
+    }
 
-    // Если была считана первая метка
-    if (t_uid == 128)
+    // П1 доехал до м3
+    if (t_uid == 43)
     {
       // Переключаемся на следующую команду - остановка
-      trains.at(0).SetCommandIterator(1);
-      arrows.SetDirection(3, LEFT);
-
-      traffics.SetLight(6, 1, ON);
-      traffics.SetLight(6, 2, ON);
-      traffics.SetLight(6, 3, OFF);
-      traffics.SetLight(6, 4, OFF);
+      //trains.at(0).SetCommandIterator(0);
+      traffics.SetLight(1, 3, ON); 
     }
-    // Если была считана финальная метка - остановка
-    else if (t_uid == 75)
+
+    // П2 доехал до м9, П2 остановка
+    if (t_uid == 30){
+      trains.at(1).SetCommandIterator(0); //команда остановки 
+      stop_counter += 1;
+    }
+
+    // П1 доехал до м4, П2 остановка
+    if (t_uid == 43)
     {
-      // Сбрасываем итератор на команду остановки
+      // Переключаемся на следующую команду - остановка
       trains.at(0).SetCommandIterator(0);
-      arrows.SetDirection(3, RIGHT);
-
-      traffics.SetLight(6, 1, OFF);
-      traffics.SetLight(6, 2, OFF);
-      traffics.SetLight(6, 3, ON);
-      traffics.SetLight(6, 4, ON);
+      stop_counter += 1;
     }
-    // Если была считана финальная метка - остановка
-    else if (t_uid == 30)
+
+    if(stop_counter >=2){
+        stop_counter = 0;
+        is_stop = true;
+        timer_stop = millis();
+    }
+
+    // оба поезда остановились запускаем таймер на 30с
+    if (is_stop) 
     {
-      // Сбрасываем итератор на команду остановки
-      trains.at(0).SetCommandIterator(2);
-      arrows.SetDirection(3, LEFT);
-
-      traffics.SetLight(6, 1, OFF);
-      traffics.SetLight(6, 2, OFF);
-      traffics.SetLight(6, 3, OFF);
-      traffics.SetLight(6, 4, OFF);
-
-      is_end = true;
-      timer_is_end = millis();
+      if (millis() - timer_stop > 15000)
+      {
+        // запускаем П1
+        trains.at(0).SetCommandIterator(1); 
+        // П1 считал М6, светофор 1 = зелёный
+        if(t_uid == 01)
+        {
+          traffics.SetLight(1,2,ON); 
+        }
+        // П1 считал М7, светофор 3 = красный
+        if(t_uid == 124)
+        {
+          traffics.SetLight(3,3,ON); 
+        }
+        // П1 считал М8 и остановка на 30с и запуск П2
+        if (t_uid == 113)
+        {
+          trains.at(0).SetCommandIterator(0);
+          // timer_stop_2 = millis();
+          trains.at(1).SetCommandIterator(1);
+          //П2 = М7
+          if(t_uid == 231)
+          {
+            traffics.SetLight(4,1,ON); //Сделать 1 желтый сигнал мигает, другой желтый статичный  
+            traffics.SetLight(4,4,ON);
+          }
+          // П2 = М6
+          if(t_uid == 5342)
+          {
+            traffics.SetLight(2,3,ON); 
+          }
+          // П2 = М5 остановка
+          if(t_uid == 642){
+            trains.at(1).SetCommandIterator(0);
+            timer_stop_2 = millis(); 
+          }
+          // П2 = М5 и П1 = М8 и прошло 30 сек, запускаем оба поезда
+          if(millis() - timer_stop_2 > 15000)
+          {
+            trains.at(1).SetCommandIterator(1);
+            trains.at(0).SetCommandIterator(1);
+          }
+        }
+        // П1 = М10, С3 = зелёный
+        if(t_uid == 9352)
+        {
+          traffics.SetLight(3,2,ON);
+        }
+        // П2 = М3, С2 = зелёный
+        if(t_uid == 41241)
+        {
+          traffics.SetLight(2,2,ON);
+        }
+        // П1 = М2 остановка в депо и возврат к началу
+        if(t_uid == 25232)
+        {
+          trains.at(0).SetCommandIterator(0);
+          return;
+        }
+        // П2 = М1 остановка в депо и возврат к началу 
+        if(t_uid == 85245)
+        {
+          trains.at(1).SetCommandIterator(0);
+          return;
+        }       
+        is_stop = false;
+      }
     }
+
     if (t_uid != 0)
     {
       Serial.print("UID: ");
@@ -332,4 +527,38 @@ void loop()
       wifi_m.ClearUDPBuffer();
     }
   }
+
+
+  // for (int tr_num = 1; tr_num < 7; tr_num++)
+  // {
+  //   Serial.printf("TL %s on\n", String(tr_num));
+  //   traffics.SetLight(tr_num, 1, ON);
+  //   delay(100);
+  //   traffics.SetLight(tr_num, 2, ON);
+  //   delay(100);
+  //   traffics.SetLight(tr_num, 3, ON);
+  //   delay(100);
+  //   traffics.SetLight(tr_num, 4, ON);
+  //   delay(100);
+  // }                               
+  
+  //traffics.ShowCommand();
+//  delay(3000);
+/*
+  for (int tr_num = 1; tr_num < 7; tr_num++)
+  {
+    Serial.printf("TL %s off\n", String(tr_num));
+    traffics.SetLight(tr_num, 1, OFF);
+    delay(1000);
+    traffics.SetLight(tr_num, 2, OFF);
+    delay(1000);
+    traffics.SetLight(tr_num, 3, OFF);
+    delay(1000);
+    traffics.SetLight(tr_num, 4, OFF);
+    delay(1000);
+  }
+
+  traffics.ShowCommand();
+  delay(3000);
+  */
 }

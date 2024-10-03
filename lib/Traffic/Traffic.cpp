@@ -13,7 +13,6 @@ Traffic::Traffic(unsigned char _number) : DCCDeviceBase(_number)
 // {
 // }
 
-// Переключение направления стрелочного перевода
 void Traffic::SetLight(unsigned char _number, unsigned char _light, unsigned char _state)
 {
   // Проверка номера светофора на максимльный
@@ -30,7 +29,7 @@ void Traffic::SetLight(unsigned char _number, unsigned char _light, unsigned cha
     writing_command_it = 0x00;
 }
 
-// Формирование DCC команды для стрелочного перевода
+
 void Traffic::CreateDCCCommand(volatile unsigned char *_command, volatile unsigned char &_lengthCMD)
 {
   // Проверка есть ли доступные светофоры
@@ -57,4 +56,38 @@ void Traffic::CreateDCCCommand(volatile unsigned char *_command, volatile unsign
   reading_command_it = writing_command_it;
   // if (++reading_command_it >= MAX_CMD_COUNT)
   //   reading_command_it = 0x00;
+}
+
+// Сформировать команду по заданным параметрам и отобразить на экране
+void Traffic::ShowCommand()
+{
+  // Проверка есть ли доступные светофоры
+  if (!Available())
+    return;
+  unsigned char temp[3];
+
+  temp[0] = (commandsList[reading_command_it] & 0xFF) & 0x3F | 0x80;
+  // Второй байт
+  temp[1] = ((commandsList[reading_command_it] & 0xFF) >> 0x05) & 0x06 | 0x01;
+  temp[1] |= ((commandsList[reading_command_it] & 0xFF) >> 0x04) & 0x70;
+  // Устанавливаем вкл/выкл света светофора
+  temp[2] = (commandsList[reading_command_it] >> 0x08) | 0x80;
+
+  unsigned char crc = 0;
+
+  for (int i = 0; i < 3; i++)
+  {
+    crc ^= temp[i];
+  }
+  
+  // Установка адреса светофора
+  Serial.print("Первый байт: ");
+  Serial.println(temp[0], BIN);
+  Serial.print("Второй байт: ");
+  Serial.println(temp[1], BIN);
+  Serial.print("Третий байт: ");
+  Serial.println(temp[2], BIN);
+  Serial.print("CRC: ");
+  Serial.println(crc, BIN);
+  Serial.println();
 }

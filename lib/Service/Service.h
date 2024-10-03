@@ -16,7 +16,7 @@ public:
   static int FindSubStrPosition(String _str, char _find_str, int _count = 1, bool _start = false);
 
   // Проверяет введенный параметр на попадание в отрезок от 0 до 1
-  bool CheckOneZeroParam(unsigned char _param, String _param_name);
+  static bool CheckOneZeroParam(unsigned char _param, String _param_name);
 };
 
 #endif //__SERVICE_H_

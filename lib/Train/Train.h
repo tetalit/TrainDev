@@ -2,6 +2,7 @@
 #define __TRAIN_H_
 
 #include "TrainCmd.h"
+#include <Arduino.h>
 // #include "DeviceBase.h"
 
 // Класс поезда

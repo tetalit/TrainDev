@@ -5,9 +5,9 @@
 
 // Максимальная скорость поезда 15
 // Контакт часов (инверсный) 34-39 не работают с прерываниями!
-#define CLOCK_PIN GPIO_NUM_25 // 25
+#define CLOCK_PIN GPIO_NUM_13// GPIO_NUM_25 // 25
 // Физически подключенный контакт - не нужен, но убрать не могу
-#define CLOCK_PIN_PHYS GPIO_NUM_34 // 34
+#define CLOCK_PIN_PHYS GPIO_NUM_13//GPIO_NUM_34 // 34
 // Ножка со встроенным светодиодом для сигнализации прерывания
 #define CLOCK_SIGNAL_INT GPIO_NUM_2 // 2 
 // Максимальное количество устройств поддерживаемое системой
@@ -43,21 +43,21 @@
 // Растянутый 0 - 12000 мкс
 // Уменьшил единицу из-за транзисторов, при переключении которых время растягивается до 70 мкс
 // Единица
-#define ONE 270//47
+#define ONE 207//47
 // Ноль
 #define ZERO 540//120
 // Длина преамбулы
 #define LENGTH_PREAMBLE 0b0001000000000000
 // Левый рельс
-#define RAIL_L GPIO_NUM_32 // 32
+#define RAIL_L GPIO_NUM_32//GPIO_NUM_5// // 32
 // Правый рельс
-#define RAIL_R GPIO_NUM_33 // 33
+#define RAIL_R GPIO_NUM_33//GPIO_NUM_4// // 33
 // Скорость 1 поезда
 #define SPEED_1_TRAIN 14
 // Скорость 2 поезда
 #define SPEED_2_TRAIN 10
 // Пин управления блокировкой драйвера
-#define DRIVER_PIN GPIO_NUM_18 // 18
+//#define DRIVER_PIN GPIO_NUM_18 // 18
 
 // Позволяет получить имя переменной
 #define VAR_NAME(varible) String(#varible)
