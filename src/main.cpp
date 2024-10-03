@@ -393,15 +393,24 @@ void loop()
       wifi_m.ClearUDPBuffer();
     }
      
-    // П2 доехал до м10, С4 = К
-    if (t_uid == 10 && senderIP == IPAddress(192,168,1,2)){
-      traffics.SetLight(4, 3, ON);
-    }
+// --------------------------тест с мигающим желтым-------------------- traffics.SetLight(4, 3, ON);
 
+    // П2 доехал до м10, С4 = К
+    if (t_uid == 30 ){ // добавить && senderIP == IPAddress(192,168,1,2)
+      traffics.SetLight(4, 1, ON);
+      delay(100);
+      traffics.SetLight(4, 4, ON);
+      traffics.ShowCommand();
+    }
+    
+// --------------------------тест с мигающим желтым--------------------
     // П1 доехал до м3, С1 = К
     if (t_uid == 3 && senderIP == IPAddress(192,168,1,1))
     {
+      traffics.SetLight(1, 1 , OFF); // выключаем желтый светодиод
+      delay(100);
       traffics.SetLight(1, 3, ON); 
+      traffics.ShowCommand();
     }
 
     // П2 доехал до м9, П2 остановка
@@ -434,12 +443,18 @@ void loop()
         // П1 считал М6,  C1 = зелёный
         if(t_uid == 6 && senderIP == IPAddress(192,168,1,1))
         {
+          traffics.SetLight(1, 3, OFF); 
+          delay(100);
           traffics.SetLight(1,2,ON); 
+          traffics.ShowCommand();
         }
         // П1 считал М7, C3 = красный
         if(t_uid == 7 && senderIP == IPAddress(192,168,1,1))
         {
+          traffics.SetLight(3, 2, OFF);
+          delay(100);
           traffics.SetLight(3,3,ON); 
+          traffics.ShowCommand();
         }       
         is_stop = false;
       }
@@ -458,7 +473,10 @@ void loop()
           // П2 = М6, C2 = К
           if(t_uid == 6 && senderIP == IPAddress(192,168,1,2))
           {
+            traffics.SetLight(2,2,OFF);
+            delay(100);
             traffics.SetLight(2,3,ON); 
+            traffics.ShowCommand();
           }
           // П2 = М5 остановка
           if(t_uid == 5 && senderIP == IPAddress(192,168,1,2)){
@@ -478,12 +496,18 @@ void loop()
         // П1 = М10, С3 = зелёный
         if(t_uid == 10 && senderIP == IPAddress(192,168,1,1))
         {
+          traffics.SetLight(3,3,OFF); 
+          delay(100);
           traffics.SetLight(3,2,ON);
+          traffics.ShowCommand();
         }
         // П2 = М3, С2 = зелёный
         if(t_uid == 3 && senderIP == IPAddress(192,168,1,2))
         {
+          traffics.SetLight(2,3,OFF);
+          delay(100);
           traffics.SetLight(2,2,ON);
+          traffics.ShowCommand();
         }
         // П1 = М2 остановка в депо и возврат к началу
         if(t_uid == 2 && senderIP == IPAddress(192,168,1,1))
@@ -519,38 +543,4 @@ void loop()
       wifi_m.ClearUDPBuffer();
     }
   }
-
-
-  // for (int tr_num = 1; tr_num < 7; tr_num++)
-  // {
-  //   Serial.printf("TL %s on\n", String(tr_num));
-  //   traffics.SetLight(tr_num, 1, ON);
-  //   delay(100);
-  //   traffics.SetLight(tr_num, 2, ON);
-  //   delay(100);
-  //   traffics.SetLight(tr_num, 3, ON);
-  //   delay(100);
-  //   traffics.SetLight(tr_num, 4, ON);
-  //   delay(100);
-  // }                               
-  
-  //traffics.ShowCommand();
-//  delay(3000);
-/*
-  for (int tr_num = 1; tr_num < 7; tr_num++)
-  {
-    Serial.printf("TL %s off\n", String(tr_num));
-    traffics.SetLight(tr_num, 1, OFF);
-    delay(1000);
-    traffics.SetLight(tr_num, 2, OFF);
-    delay(1000);
-    traffics.SetLight(tr_num, 3, OFF);
-    delay(1000);
-    traffics.SetLight(tr_num, 4, OFF);
-    delay(1000);
-  }
-
-  traffics.ShowCommand();
-  delay(3000);
-  */
 }
