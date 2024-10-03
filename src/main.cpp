@@ -1,5 +1,6 @@
 #include "main.h"
 
+
 // Обработка прерывания таймера
 void IRAM_ATTR OnTimerISR()
 {
@@ -166,7 +167,7 @@ void SendsCommands()
 void setup()
 {
   // Инициализация COM порта
-  Serial.begin(115200);
+  Serial.begin(921600);
   Serial.printf("Serial port запущен на скорости %d\n", Serial.baudRate());
 
   // Создание точки доступа
@@ -202,14 +203,19 @@ void setup()
   Serial.println("GPIO сконфигурированы");
 
   trains.push_back(Train(1));
+  trains.push_back(Train(2));
 
-  TrainCmd cmd(1, 2, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd(1, 0, 1, 0, 0, 0, 0, 0, 0);
   TrainCmd cmd1(1, 5, 1, 0, 0, 0, 0, 0, 0);
-  TrainCmd cmd2(1, 0, 1, 0, 0, 0, 0, 0, 0);
+  // TrainCmd cmd2(1, 0, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd2_0(1, 0, 1, 0, 0, 0, 0, 0, 0);
+  TrainCmd cmd2_1(1, 5, 1, 0, 0, 0, 0, 0, 0);
 
   trains.at(0).AddCmd(cmd);
   trains.at(0).AddCmd(cmd1);
-  trains.at(0).AddCmd(cmd2);
+  // trains.at(0).AddCmd(cmd2);
+  trains.at(1).AddCmd(cmd2_0);
+  trains.at(1).AddCmd(cmd2_1);
 
   Serial.printf("Количество поездов: %s\n", String(trains.size()));
 
@@ -218,8 +224,8 @@ void setup()
   timerAttachInterrupt(DCC_timer, &OnTimerISR, true);
   timerAlarmWrite(DCC_timer, 0, true);
   timerAlarmDisable(DCC_timer);
-  // timerAlarmEnable(DCC_timer);
-  // timerWrite(DCC_timer, 600);
+  timerAlarmEnable(DCC_timer);
+  timerWrite(DCC_timer, 600);
   Serial.println("Таймер настроен");
 
   // Активация прерывания на ножке часов
@@ -233,17 +239,24 @@ void setup()
 
   // Сбрасываем команду для поезда
   trains.at(0).SetCommandIterator(0);
+  trains.at(1).SetCommandIterator(0);
 }
+
+//unsigned char tr_num = 3;
+
+bool dir = false;
 
 void loop()
 {
+
   if (clock_flag)
   {
     if (first_task_flag)
     {
       timerAlarmEnable(DCC_timer);
       timerWrite(DCC_timer, passInterval);
-      trains.at(0).SetCommandIterator(0);
+      trains.at(0).SetCommandIterator(1);
+      trains.at(1).SetCommandIterator(1);
       delay(5000);
       arrows.SetDirection(3, RIGHT);
       first_task_flag = false;
@@ -251,7 +264,8 @@ void loop()
 
     if (millis() - timer_send > 1000)
     {
-
+      arrows.SetDirection(3,dir);
+      dir^=1;
       wifi_m.CheckCountClients();
       SendsCommands();
       Serial.print("Текущий поезд: ");
@@ -273,45 +287,75 @@ void loop()
       wifi_m.ClearUDPBuffer();
     }
 
+    if (t_uid == 30){
+      trains.at(1).SetCommandIterator(0);
+      stop_counter += 1;
+      arrows.SetDirection(3, LEFT);
+    }
+
     // Если была считана первая метка
-    if (t_uid == 128)
+    if (t_uid == 43)
     {
       // Переключаемся на следующую команду - остановка
-      trains.at(0).SetCommandIterator(1);
-      arrows.SetDirection(3, LEFT);
+      trains.at(0).SetCommandIterator(0);
+      stop_counter += 1;
+      
+       arrows.SetDirection(3, LEFT);
 
-      traffics.SetLight(6, 1, ON);
-      traffics.SetLight(6, 2, ON);
-      traffics.SetLight(6, 3, OFF);
-      traffics.SetLight(6, 4, OFF);
+      // traffics.SetLight(6, 1, ON);
+      // traffics.SetLight(6, 2, ON);
+      // traffics.SetLight(6, 3, OFF);
+      // traffics.SetLight(6, 4, OFF);
     }
+    if(stop_counter >=2){
+        stop_counter = 0;
+        is_stop = true;
+        timer_stop = millis();
+    }
+
+    if (is_stop)
+    {
+      if (millis() - timer_stop > 15000)
+      {
+        trains.at(0).SetCommandIterator(1);
+        trains.at(1).SetCommandIterator(1);
+        is_stop = false;
+      }
+    }
+
+    if (t_uid == 229){
+      trains.at(1).SetCommandIterator(0);
+      arrows.SetDirection(3, RIGHT);
+    }
+
     // Если была считана финальная метка - остановка
-    else if (t_uid == 75)
+    if (t_uid == 160)
     {
       // Сбрасываем итератор на команду остановки
       trains.at(0).SetCommandIterator(0);
-      arrows.SetDirection(3, RIGHT);
+      
+       arrows.SetDirection(3, RIGHT);
 
-      traffics.SetLight(6, 1, OFF);
-      traffics.SetLight(6, 2, OFF);
-      traffics.SetLight(6, 3, ON);
-      traffics.SetLight(6, 4, ON);
+      // traffics.SetLight(6, 1, OFF);
+      // traffics.SetLight(6, 2, OFF);
+      // traffics.SetLight(6, 3, ON);
+      // traffics.SetLight(6, 4, ON);
     }
     // Если была считана финальная метка - остановка
-    else if (t_uid == 30)
-    {
-      // Сбрасываем итератор на команду остановки
-      trains.at(0).SetCommandIterator(2);
-      arrows.SetDirection(3, LEFT);
+    // else if (t_uid == 30)
+    // {
+    //   // Сбрасываем итератор на команду остановки
+    //   trains.at(0).SetCommandIterator(2);
+    //   arrows.SetDirection(3, LEFT);
 
-      traffics.SetLight(6, 1, OFF);
-      traffics.SetLight(6, 2, OFF);
-      traffics.SetLight(6, 3, OFF);
-      traffics.SetLight(6, 4, OFF);
+    //   traffics.SetLight(6, 1, OFF);
+    //   traffics.SetLight(6, 2, OFF);
+    //   traffics.SetLight(6, 3, OFF);
+    //   traffics.SetLight(6, 4, OFF);
 
-      is_end = true;
-      timer_is_end = millis();
-    }
+    //   is_end = true;
+    //   timer_is_end = millis();
+    // }
     if (t_uid != 0)
     {
       Serial.print("UID: ");
@@ -332,4 +376,37 @@ void loop()
       wifi_m.ClearUDPBuffer();
     }
   }
+  
+  // for (int tr_num = 1; tr_num < 7; tr_num++)
+  // {
+  //   Serial.printf("TL %s on\n", String(tr_num));
+  //   traffics.SetLight(tr_num, 1, ON);
+  //   delay(100);
+  //   traffics.SetLight(tr_num, 2, ON);
+  //   delay(100);
+  //   traffics.SetLight(tr_num, 3, ON);
+  //   delay(100);
+  //   traffics.SetLight(tr_num, 4, ON);
+  //   delay(100);
+  // }                               
+  traffics.SetLight(3, 2, ON); // 1 - красный 2 - жёлтый 3 - красный
+  //traffics.ShowCommand();
+//  delay(3000);
+/*
+  for (int tr_num = 1; tr_num < 7; tr_num++)
+  {
+    Serial.printf("TL %s off\n", String(tr_num));
+    traffics.SetLight(tr_num, 1, OFF);
+    delay(1000);
+    traffics.SetLight(tr_num, 2, OFF);
+    delay(1000);
+    traffics.SetLight(tr_num, 3, OFF);
+    delay(1000);
+    traffics.SetLight(tr_num, 4, OFF);
+    delay(1000);
+  }
+
+  traffics.ShowCommand();
+  delay(3000);
+  */
 }

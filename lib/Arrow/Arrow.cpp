@@ -51,7 +51,8 @@ void Arrow::CreateDCCCommand(volatile unsigned char *_command, volatile unsigned
   _command[_lengthCMD] |= (commandsList[reading_command_it] - 0x01) % 0x04 << 0x01;
   ++_lengthCMD;
   // Рассчитываем контрольную сумму
-  _lengthCMD = CalcCRC(_command, _lengthCMD);
+  _lengthCMD = CalcCRC(_command, _lengthCMD); 
+  
   // Изменяем номер итератора
   // Принудительно задаем тот же номер, что и для записываемого элемента
   reading_command_it = writing_command_it;

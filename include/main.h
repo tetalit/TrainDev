@@ -1,7 +1,7 @@
 #include "Train.h"
 #include "Arrow.h"
 #include "Traffic.h"
-
+#include <Arduino.h>
 #include "WiFiManager.h"
 #include <esp_system.h>
 #include <rom/ets_sys.h>
@@ -13,6 +13,8 @@ volatile bool clock_flag = false;
 volatile bool first_task_flag = false;
 // Флаг завершения работы 
 volatile bool is_end = false;
+// Фоаг ожидания поезда
+bool is_stop = false;
 // Флаг ошибки по времени
 // volatile bool error_flag = false;
 // Переменная состояния конечного автомата работы депо
@@ -21,6 +23,7 @@ unsigned char state = 0;
 unsigned char first_read_uid;
 // Временная переменная метки
 unsigned char t_uid = 0;
+int stop_counter = 0;
 
 // !!! ДЛЯ РАБОТЫ В MAIN !!! //
 
@@ -35,6 +38,8 @@ unsigned int timer_loop = 0;
 unsigned int timer_work = 0;
 // Таймер завершения работы 
 unsigned int timer_is_end = 0;
+// Таймер ожидания поезда
+unsigned int timer_stop = 0;
 // Время для проезда поезда. Если превышено - взводится флаг ошибки
 // unsigned int timer_error = 0;
 // Таймер отправки команд

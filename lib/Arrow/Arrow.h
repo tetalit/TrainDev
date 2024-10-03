@@ -1,7 +1,6 @@
 #ifndef __ARROW_H_
 #define __ARROW_H_
 
-#include "ArrowCmd.h"
 #include "DCCDeviceBase.h"
 
 // Класс поезда
@@ -13,8 +12,6 @@ public:
   Arrow();
   // Конструктор с номером
   Arrow(unsigned char _number);
-  // Конструктор с номером и командами
-  // Arrow(unsigned char _number, std::vector<ArrowCmd> _commands);
 
   // Переключение направления стрелочного перевода
   void SetDirection(unsigned char _number, unsigned char _direction = LEFT);
