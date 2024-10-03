@@ -345,10 +345,8 @@ void setup()
       delay(250);
       traffics.SetLight(4, 1, ON);
       traffics.ShowCommand();
-      }
+    }
 }
-
-//unsigned char tr_num = 3;
 
 bool dir = false;
 
@@ -384,20 +382,14 @@ void loop()
       // Serial.println();
       timer_send = millis();
     }
-    // if(traffics_first_itr == 1)
-    // {
-    //   traffics.SetLight(1, 1, ON); // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
-    //   traffics.SetLight(2, 2, ON);
-    //   traffics.SetLight(3, 2, ON);
-    //   traffics.SetLight(4, 1, ON);
-    //   traffics.ShowCommand();
-    //   traffics_first_itr = 0;
-    // }
 
     t_uid = wifi_m.CheckPacket();
     if (t_uid != 0)
     {
       t_uid = wifi_m.GetPacket()[0];
+      IPAddress senderIP = wifi_m.GetLastIP();
+      Serial.print("IP: ");
+      Serial.println(senderIP);
       wifi_m.ClearUDPBuffer();
     }
      

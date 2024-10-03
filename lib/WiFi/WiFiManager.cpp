@@ -73,6 +73,10 @@ void WiFiManager::ShowPacketInfo()
   Serial.println("==========");
 }
 
+// void WiFiManager::SenderIP(senderIP){
+// IPAddress senderIP = udp.remoteIP();
+// }
+
 // Получить пакет
 unsigned char WiFiManager::CheckPacket()
 {

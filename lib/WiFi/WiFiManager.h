@@ -67,6 +67,7 @@ public:
   void CheckCountClients();
   // Получить IP адрес последнего подключенного клиента
   IPAddress GetLastIP();
+  void SenderIP(IPAddress senderIP);
 };
 
 #endif //__WIFI_MANAGER_H_
