@@ -337,15 +337,16 @@ void setup()
   trains.at(0).SetCommandIterator(0);
   trains.at(1).SetCommandIterator(0);
 
+
   // Первое включение светофоров
-  for(int i = 0; i <= 3; i++){
-      traffics.SetLight(1, 1, ON); // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
+  for(int i = 0; i <= 3; i++){  // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
+      traffics.SetLight(1, 1, ON); // С1 = светофор № 1
       delay(250);
-      traffics.SetLight(2, 2, ON);
+      traffics.SetLight(2, 2, ON); // С2 = светофор № 2
       delay(250);
-      traffics.SetLight(3, 2, ON);
+      traffics.SetLight(3, 2, ON); // С3 = светофор № 3
       delay(250);
-      traffics.SetLight(4, 1, ON);
+      traffics.SetLight(5, 1, ON); // С4 = светофор № 5
       traffics.ShowCommand();
     }
 }
@@ -392,18 +393,14 @@ void loop()
       senderIP = wifi_m.GetLastIP(); // берём ip поезда отправившего метку
       wifi_m.ClearUDPBuffer();
     }
-     
-// --------------------------тест с мигающим желтым-------------------- traffics.SetLight(4, 3, ON);
 
     // П2 доехал до м10, С4 = К
-    if (t_uid == 30 ){ // добавить && senderIP == IPAddress(192,168,1,2)
-      traffics.SetLight(4, 1, ON);
+    if (t_uid == 30 && senderIP == IPAddress(192,168,1,2)){ // добавить && senderIP == IPAddress(192,168,1,2)
+      traffics.SetLight(5, 1, OFF);
       delay(100);
-      traffics.SetLight(4, 4, ON);
+      traffics.SetLight(5, 3, ON);
       traffics.ShowCommand();
     }
-    
-// --------------------------тест с мигающим желтым--------------------
     // П1 доехал до м3, С1 = К
     if (t_uid == 3 && senderIP == IPAddress(192,168,1,1))
     {
@@ -467,8 +464,11 @@ void loop()
           //П2 = М7, С4 = Ж + Ж
           if(t_uid == 4 && senderIP == IPAddress(192,168,1,2))
           {
-            traffics.SetLight(4,1,ON); //Сделать 1 желтый сигнал мигает, другой желтый статичный  
-            traffics.SetLight(4,4,ON);
+            traffics.SetLight(5,3,OFF); //Сделать 1 желтый сигнал мигает, другой желтый статичный  
+            delay(100);
+            traffics.SetLight(5,4,ON);
+            delay(100);
+            traffics.SetLight(5,1,ON);
           }
           // П2 = М6, C2 = К
           if(t_uid == 6 && senderIP == IPAddress(192,168,1,2))
