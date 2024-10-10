@@ -43,8 +43,9 @@ void Traffic::CreateDCCCommand(volatile unsigned char *_command, volatile unsign
   _command[_lengthCMD] = (commandsList[reading_command_it] & 0xFF) & 0x3F | 0x80;
   ++_lengthCMD;
   // Второй байт
-  _command[_lengthCMD] = ((commandsList[reading_command_it] & 0xFF) >> 0x05) & 0x06 | 0x01;
+  _command[_lengthCMD] = ((commandsList[reading_command_it] & 0xFF) >> 0x05) & 0x06 | 0x01; 
   _command[_lengthCMD] |= ((commandsList[reading_command_it] & 0xFF) >> 0x04) & 0x70;
+  
   ++_lengthCMD;
   // Устанавливаем вкл/выкл света светофора
   _command[_lengthCMD] = (commandsList[reading_command_it] >> 0x08) | 0x80;
@@ -62,14 +63,16 @@ void Traffic::CreateDCCCommand(volatile unsigned char *_command, volatile unsign
 void Traffic::ShowCommand()
 {
   // Проверка есть ли доступные светофоры
+  // Serial.println("aboba1111111111111111111111111");
   if (!Available())
     return;
   unsigned char temp[3];
-
+// Serial.println("aboba 222222222222222222222222222222222");
   temp[0] = (commandsList[reading_command_it] & 0xFF) & 0x3F | 0x80;
-  // Второй байт
-  temp[1] = ((commandsList[reading_command_it] & 0xFF) >> 0x05) & 0x06 | 0x01;
+  // Второй байт                                                  
+  temp[1] = ((commandsList[reading_command_it] & 0xFF) >> 0x05) & 0x06 | 0x01; //изменил 0x06 на 0x07
   temp[1] |= ((commandsList[reading_command_it] & 0xFF) >> 0x04) & 0x70;
+  //temp[1] |= 0x80; // Установите старший бит, тест
   // Устанавливаем вкл/выкл света светофора
   temp[2] = (commandsList[reading_command_it] >> 0x08) | 0x80;
 

@@ -16,6 +16,7 @@ volatile bool first_task_flag = false;
 volatile bool is_end = false;
 // Фоаг ожидания поезда
 bool is_stop = false;
+bool is_stop2 = false;
 // Флаг ошибки по времени
 // volatile bool error_flag = false;
 // Переменная состояния конечного автомата работы депо
@@ -262,6 +263,7 @@ void SendsCommands()
 
 void setup()
 {
+
   // Инициализация COM порта
   Serial.begin(921600);
   Serial.printf("Serial port запущен на скорости %d\n", Serial.baudRate());
@@ -337,18 +339,36 @@ void setup()
   trains.at(0).SetCommandIterator(0);
   trains.at(1).SetCommandIterator(0);
 
-
   // Первое включение светофоров
-  for(int i = 0; i <= 3; i++){  // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
-      traffics.SetLight(1, 1, ON); // С1 = светофор № 1
-      delay(250);
-      traffics.SetLight(2, 2, ON); // С2 = светофор № 2
-      delay(250);
-      traffics.SetLight(3, 2, ON); // С3 = светофор № 3
-      delay(250);
-      traffics.SetLight(5, 1, ON); // С4 = светофор № 5
-      traffics.ShowCommand();
-    }
+ // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
+//  for(int i = 0; i <= 3; i++){
+//       traffics.SetLight(1, 1, ON); // С1 = светофор № 1
+//       traffics.ShowCommand();
+//       delay(250);
+//       traffics.SetLight(2, 2, ON); // С2 = светофор № 2
+//       traffics.ShowCommand();
+//       delay(250);   
+//       traffics.SetLight(3, 2, ON); // С3 = светофор № 3
+//       traffics.ShowCommand();
+//       delay(250);
+//       traffics.SetLight(5, 1, ON); // С4 = светофор № 5 
+//       traffics.ShowCommand();
+//       delay(250); 
+//       traffics.SetLight(6, 1, ON);
+//       traffics.ShowCommand();
+//       delay(250);
+//       traffics.SetLight(4, 4, ON);
+//       traffics.ShowCommand();
+//       delay(250);
+//       traffics.SetLight(0, 4, ON);
+//       traffics.ShowCommand();
+//       delay(250);
+//       traffics.SetLight(7, 4, ON);
+//       traffics.ShowCommand();
+//       delay(250);
+//       traffics.SetLight(8, 4, ON);
+//       traffics.ShowCommand();
+//   }
 }
 
 bool dir = false;
@@ -356,14 +376,17 @@ bool dir = false;
 // метки их 2ой байт:
 // М1 = 43
 // М2 = 160
-// М3 = 113
+// М3 = ?
 // М4 = 229
 // М5 = 1
-// М6 = 124
+// М6 = ?
 // М7 = ?
-// М8 = ?
-// М9 = ?
-// М10 = ?
+// М8 = 113
+// М9 = 124
+// М10 = ? 
+
+// тест берём м3, м5, м6, м7, м8, м2
+// ВРЕМЕННО ПОМЕНЯЛ М1 = М7; М8 = М4
 
 void loop()
 {
@@ -407,28 +430,28 @@ void loop()
     }
 
     // П2 доехал до м10, С4 = К
-    if (t_uid == 30 && senderIP == IPAddress(192,168,1,2)){ // добавить && senderIP == IPAddress(192,168,1,2)
-      traffics.SetLight(5, 1, OFF);
-      delay(100);
-      traffics.SetLight(5, 3, ON);
-      traffics.ShowCommand();
-    }
+    // if (t_uid == 30 && senderIP == IPAddress(192,168,1,2)){ // добавить && senderIP == IPAddress(192,168,1,2)
+    //   traffics.SetLight(5, 1, OFF);
+    //   delay(100);
+    //   traffics.SetLight(5, 3, ON);
+    //   traffics.ShowCommand();
+    // }
     // П1 доехал до м3, С1 = К
-    if (t_uid == 113 && senderIP == IPAddress(192,168,1,1))
-    {
-      traffics.SetLight(1, 1 , OFF); // выключаем желтый светодиод
-      delay(100);
-      traffics.SetLight(1, 3, ON); 
-      traffics.ShowCommand();
-    }
+    // if (t_uid == 113 && senderIP == IPAddress(192,168,1,1))
+    // {
+    //   traffics.SetLight(1, 1 , OFF); // выключаем желтый светодиод
+    //   delay(100);
+    //   traffics.SetLight(1, 3, ON); 
+    //   traffics.ShowCommand();
+    // }
 
     // П2 доехал до м9, П2 остановка
-    if (t_uid == 9 && senderIP == IPAddress(192,168,1,2)){
+    if (t_uid == 124 && senderIP == IPAddress(192,168,1,2)){
       trains.at(1).SetCommandIterator(0); //команда остановки 
       stop_counter += 1;
     }
 
-    // П1 доехал до м4, П2 остановка
+    // П1 доехал до м4, П1 остановка
     if (t_uid == 229 && senderIP == IPAddress(192,168,1,1)) 
     {
       // Переключаемся на следующую команду - остановка
@@ -437,7 +460,7 @@ void loop()
     }
 
     if(stop_counter >=2){
-        stop_counter = 0;
+        stop_counter = 0; 
         is_stop = true;
         timer_stop = millis();
     }
@@ -448,92 +471,103 @@ void loop()
       if (millis() - timer_stop > 30000)
       {
         // запускаем П1
-        trains.at(0).SetCommandIterator(1); 
-        // П1 считал М6,  C1 = зелёный
-        if(t_uid == 124 && senderIP == IPAddress(192,168,1,1))
-        {
-          traffics.SetLight(1, 3, OFF); 
-          delay(100);
-          traffics.SetLight(1,2,ON); 
-          traffics.ShowCommand();
-        }
-        // П1 считал М7, C3 = красный
-        if(t_uid == 7 && senderIP == IPAddress(192,168,1,1))
-        {
-          traffics.SetLight(3, 2, OFF);
-          delay(100);
-          traffics.SetLight(3,3,ON); 
-          traffics.ShowCommand();
-        }       
+        Serial.println("-================  П1 запущен  =====================-");
+        trains.at(0).SetCommandIterator(1);
         is_stop = false;
+        stop_counter = 0;
       }
-      // П1 считал М8, остановка на 30с и запуск П2
-        if (t_uid == 8 && senderIP == IPAddress(192,168,1,1))
+      
+    }
+        // П1 считал М6,  C1 = зелёный
+        // if(t_uid == 124 && senderIP == IPAddress(192,168,1,1))
+        // {
+        //   traffics.SetLight(1, 3, OFF); 
+        //   delay(100);
+        //   traffics.SetLight(1,2,ON); 
+        //   traffics.ShowCommand();
+        // }
+        // П1 считал М7, C3 = красный
+        // if(t_uid == 43 && senderIP == IPAddress(192,168,1,1)) // тест с номером 43 потом поменять
+        // {
+        //   traffics.SetLight(3, 2, OFF);
+        //   delay(100);
+        //   traffics.SetLight(3,3,ON); 
+        //   traffics.ShowCommand();
+        // }       
+
+        // П1 считал М8, остановка П1 и запуск П2
+        if (t_uid == 113 && senderIP == IPAddress(192,168,1,1)) 
         {
           trains.at(0).SetCommandIterator(0);
           // timer_stop_2 = millis();
           trains.at(1).SetCommandIterator(1);
           //П2 = М7, С4 = Ж + Ж
-          if(t_uid == 4 && senderIP == IPAddress(192,168,1,2))
-          {
-            traffics.SetLight(5,3,OFF); //Сделать 1 желтый сигнал мигает, другой желтый статичный  
-            delay(100);
-            traffics.SetLight(5,4,ON);
-            delay(100);
-            traffics.SetLight(5,1,ON);
-          }
+          // if(t_uid == 4 && senderIP == IPAddress(192,168,1,2))
+          // {
+          //   traffics.SetLight(5,3,OFF); //Сделать 1 желтый сигнал мигает, другой желтый статичный  
+          //   delay(100);
+          //   traffics.SetLight(5,4,ON);
+          //   delay(100);
+          //   traffics.SetLight(5,1,ON);
+          // }
           // П2 = М6, C2 = К
-          if(t_uid == 124 && senderIP == IPAddress(192,168,1,2))
-          {
-            traffics.SetLight(2,2,OFF);
-            delay(100);
-            traffics.SetLight(2,3,ON); 
-            traffics.ShowCommand();
-          }
-          // П2 = М5 остановка
-          if(t_uid == 1 && senderIP == IPAddress(192,168,1,2)){
-            trains.at(1).SetCommandIterator(0);
-            timer_stop_2 = millis(); 
-          }
-          //  П1 = М8 и П2 = М5;  прошло 30 сек, запускаем оба поезда
-          if((t_uid == 8 && senderIP == IPAddress(192,168,1,1)) && (t_uid == 1 && senderIP == IPAddress(192,168,1,2)))
-          {
-            if(millis() - timer_stop_2 > 30000)
-            {
-              trains.at(1).SetCommandIterator(1);
-              trains.at(0).SetCommandIterator(1);
-            }
-          }
+          // if(t_uid == 124 && senderIP == IPAddress(192,168,1,2))
+          // {
+          //   traffics.SetLight(2,2,OFF);
+          //   delay(100);
+          //   traffics.SetLight(2,3,ON); 
+          //   traffics.ShowCommand();
+          // }
+          
         }
-        // П1 = М10, С3 = зелёный
-        if(t_uid == 10 && senderIP == IPAddress(192,168,1,1))
-        {
-          traffics.SetLight(3,3,OFF); 
-          delay(100);
-          traffics.SetLight(3,2,ON);
-          traffics.ShowCommand();
-        }
-        // П2 = М3, С2 = зелёный
-        if(t_uid == 113 && senderIP == IPAddress(192,168,1,2))
-        {
-          traffics.SetLight(2,3,OFF);
-          delay(100);
-          traffics.SetLight(2,2,ON);
-          traffics.ShowCommand();
-        }
-        // П1 = М2 остановка в депо и возврат к началу
-        if(t_uid == 160 && senderIP == IPAddress(192,168,1,1))
-        {
-          trains.at(0).SetCommandIterator(0);
-          return;
-        }
-        // П2 = М1 остановка в депо и возврат к началу 
-        if(t_uid == 43 && senderIP == IPAddress(192,168,1,2))
+        // П2 = М5 остановка
+        if(t_uid == 1 && senderIP == IPAddress(192,168,1,2))
         {
           trains.at(1).SetCommandIterator(0);
-          return;
+          timer_stop_2 = millis(); 
+          is_stop2 = true;
         }
+        if(is_stop2){
+          if(millis() - timer_stop_2 > 30000)
+          {
+            trains.at(1).SetCommandIterator(1);
+            trains.at(0).SetCommandIterator(1);
+            is_stop2 = false;
+          }
+        }
+        //  П1 = М8 и П2 = М5;  прошло 30 сек, запускаем оба поезда
+        // if((t_uid == 113 && senderIP == IPAddress(192,168,1,1)) && (t_uid == 1 && senderIP == IPAddress(192,168,1,2)))
+        // {
+          
+        // }
+      
+        // П1 = М10, С3 = зелёный
+        // if(t_uid == 10 && senderIP == IPAddress(192,168,1,1))
+        // {
+        //   traffics.SetLight(3,3,OFF); 
+        //   delay(100);
+        //   traffics.SetLight(3,2,ON);
+        //   traffics.ShowCommand();
+        // }
+        // П2 = М3, С2 = зелёный
+        // if(t_uid == 113 && senderIP == IPAddress(192,168,1,2))
+        // {
+        //   traffics.SetLight(2,3,OFF);
+        //   delay(100);
+        //   traffics.SetLight(2,2,ON);
+        //   traffics.ShowCommand();
+        // }
+
+    // П1 = М2 остановка в депо и возврат к началу
+    if(t_uid == 160 && senderIP == IPAddress(192,168,1,1))
+    {
+      trains.at(0).SetCommandIterator(0);
     }
+    // П2 = М1 остановка в депо и возврат к началу 
+    if(t_uid == 43 && senderIP == IPAddress(192,168,1,2))
+    {
+      trains.at(1).SetCommandIterator(0);
+    }    
 
     if (t_uid != 0)
     {
