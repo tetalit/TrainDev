@@ -446,7 +446,7 @@ void loop()
     // }
 
     // П2 доехал до м9, П2 остановка
-    if (t_uid == 113 && senderIP == IPAddress(192,168,1,2)){
+    if (t_uid == 229 && senderIP == IPAddress(192,168,1,2)){
       trains.at(1).SetCommandIterator(0); //команда остановки 
       stop_counter += 1;
     }
