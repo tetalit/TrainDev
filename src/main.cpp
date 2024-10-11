@@ -446,13 +446,13 @@ void loop()
     // }
 
     // П2 доехал до м9, П2 остановка
-    if (t_uid == 124 && senderIP == IPAddress(192,168,1,2)){
+    if (t_uid == 113 && senderIP == IPAddress(192,168,1,2)){
       trains.at(1).SetCommandIterator(0); //команда остановки 
       stop_counter += 1;
     }
 
     // П1 доехал до м4, П1 остановка
-    if (t_uid == 229 && senderIP == IPAddress(192,168,1,1)) 
+    if (t_uid == 75 && senderIP == IPAddress(192,168,1,1)) 
     {
       // Переключаемся на следующую команду - остановка
       trains.at(0).SetCommandIterator(0);
@@ -496,7 +496,7 @@ void loop()
         // }       
 
         // П1 считал М8, остановка П1 и запуск П2
-        if (t_uid == 113 && senderIP == IPAddress(192,168,1,1)) 
+        if (t_uid == 30 && senderIP == IPAddress(192,168,1,1)) 
         {
           trains.at(0).SetCommandIterator(0);
           // timer_stop_2 = millis();
@@ -521,7 +521,7 @@ void loop()
           
         }
         // П2 = М5 остановка
-        if(t_uid == 1 && senderIP == IPAddress(192,168,1,2))
+        if(t_uid == 128 && senderIP == IPAddress(192,168,1,2))
         {
           trains.at(1).SetCommandIterator(0);
           timer_stop_2 = millis(); 
