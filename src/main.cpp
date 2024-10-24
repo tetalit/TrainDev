@@ -390,7 +390,6 @@ bool dir = false;
 
 void loop()
 {
-
   if (clock_flag)
   {
     if (first_task_flag)
@@ -468,7 +467,7 @@ void loop()
     // оба поезда остановились запускаем таймер на 30с
     if (is_stop) 
     {
-      if (millis() - timer_stop > 30000)
+      if (millis() - timer_stop > 15000)
       {
         // запускаем П1
         Serial.println("-================  П1 запущен  =====================-");
@@ -528,7 +527,7 @@ void loop()
           is_stop2 = true;
         }
         if(is_stop2){
-          if(millis() - timer_stop_2 > 30000)
+          if(millis() - timer_stop_2 > 15000)
           {
             trains.at(1).SetCommandIterator(1);
             trains.at(0).SetCommandIterator(1);
@@ -568,6 +567,11 @@ void loop()
     {
       trains.at(1).SetCommandIterator(0);
     }    
+    if((t_uid == 160 && senderIP == IPAddress(192,168,1,1)) && (t_uid == 43 && senderIP == IPAddress(192,168,1,2)))
+    {
+      is_end = true;
+      timer_is_end = millis();
+    }
 
     if (t_uid != 0)
     {
