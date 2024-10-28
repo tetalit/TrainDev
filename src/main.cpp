@@ -97,8 +97,8 @@ volatile unsigned char ledsTrafficIterator = 0;
 uint8_t traffics_first_itr = 1;
 // переменная для сравнения ip поездов
 IPAddress senderIP;
-// счётчик окончания 
-uint8_t end_counter = 0;
+bool first_train_end = false;
+bool second_train_end = true;
 
 // Обработка прерывания таймера
 void IRAM_ATTR OnTimerISR()
@@ -563,21 +563,23 @@ void loop()
     if(t_uid == 160 && senderIP == IPAddress(192,168,1,1))
     {
       trains.at(0).SetCommandIterator(0);
-      // end_counter += 1;
+      first_train_end = true;
     }
     // П2 = М1 остановка в депо и возврат к началу 
     if(t_uid == 43 && senderIP == IPAddress(192,168,1,2))
     {
       trains.at(1).SetCommandIterator(0);
-      // end_counter += 1;
+      second_train_end = ture;
     }    
-    if(end_counter == 2){
+    if((first_train_end == true) && (second_train_end == true) ){
       Serial.println("----------------------------------------------------------");
       Serial.println("Оба поезда закончили движение, ожидание сигнала с часов");
       Serial.println("----------------------------------------------------------");
-      is_end = true;
+      
       timer_is_end = millis();
-      end_counter = 0;
+      is_end = true;
+      first_train_end = false;
+      second_train_end = false;
     }
 
     if (t_uid != 0)
