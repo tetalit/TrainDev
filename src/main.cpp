@@ -469,7 +469,7 @@ void loop()
     // оба поезда остановились запускаем таймер на 30с
     if (is_stop) 
     {
-      if (millis() - timer_stop > 15000)
+      if (millis() - timer_stop > 30000)
       {
         // запускаем П1
         Serial.println("-================  П1 запущен  =====================-");
@@ -563,13 +563,13 @@ void loop()
     if(t_uid == 160 && senderIP == IPAddress(192,168,1,1))
     {
       trains.at(0).SetCommandIterator(0);
-      end_counter += 1;
+      // end_counter += 1;
     }
     // П2 = М1 остановка в депо и возврат к началу 
     if(t_uid == 43 && senderIP == IPAddress(192,168,1,2))
     {
       trains.at(1).SetCommandIterator(0);
-      end_counter += 1;
+      // end_counter += 1;
     }    
     if(end_counter == 2){
       Serial.println("----------------------------------------------------------");
