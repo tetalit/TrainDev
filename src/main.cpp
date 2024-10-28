@@ -569,7 +569,7 @@ void loop()
     if(t_uid == 43 && senderIP == IPAddress(192,168,1,2))
     {
       trains.at(1).SetCommandIterator(0);
-      second_train_end = ture;
+      second_train_end = true;
     }    
     if((first_train_end == true) && (second_train_end == true) ){
       Serial.println("----------------------------------------------------------");
