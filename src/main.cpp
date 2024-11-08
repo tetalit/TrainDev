@@ -97,6 +97,7 @@ volatile unsigned char ledsTrafficIterator = 0;
 uint8_t traffics_first_itr = 1;
 // переменная для сравнения ip поездов
 IPAddress senderIP;
+// флаги конца круга для каждого поезда
 bool first_train_end = false;
 bool second_train_end = true;
 
@@ -341,36 +342,37 @@ void setup()
   trains.at(0).SetCommandIterator(0);
   trains.at(1).SetCommandIterator(0);
 
+
   // Первое включение светофоров
  // 1 - желтый верх 2 - зелёный  3 - красный 4 - желтый низ
-//  for(int i = 0; i <= 3; i++){
-//       traffics.SetLight(1, 1, ON); // С1 = светофор № 1
-//       traffics.ShowCommand();
-//       delay(250);
-//       traffics.SetLight(2, 2, ON); // С2 = светофор № 2
-//       traffics.ShowCommand();
-//       delay(250);   
-//       traffics.SetLight(3, 2, ON); // С3 = светофор № 3
-//       traffics.ShowCommand();
-//       delay(250);
-//       traffics.SetLight(5, 1, ON); // С4 = светофор № 5 
-//       traffics.ShowCommand();
-//       delay(250); 
-//       traffics.SetLight(6, 1, ON);
-//       traffics.ShowCommand();
-//       delay(250);
-//       traffics.SetLight(4, 4, ON);
-//       traffics.ShowCommand();
-//       delay(250);
-//       traffics.SetLight(0, 4, ON);
-//       traffics.ShowCommand();
-//       delay(250);
-//       traffics.SetLight(7, 4, ON);
-//       traffics.ShowCommand();
-//       delay(250);
-//       traffics.SetLight(8, 4, ON);
-//       traffics.ShowCommand();
-//   }
+ for(int i = 0; i <= 3; i++){
+      traffics.SetLight(1, 1, ON); // С1 = светофор № 1
+      traffics.ShowCommand();
+      delay(250);
+      traffics.SetLight(2, 2, ON); // С2 = светофор № 2
+      traffics.ShowCommand();
+      delay(250);   
+      traffics.SetLight(3, 2, ON); // С3 = светофор № 3
+      traffics.ShowCommand();
+      delay(250);
+      traffics.SetLight(5, 1, ON); // С4 = светофор № 5 
+      traffics.ShowCommand();
+      delay(250); 
+      traffics.SetLight(6, 1, ON);
+      traffics.ShowCommand();
+      delay(250);
+      traffics.SetLight(4, 4, ON);
+      traffics.ShowCommand();
+      delay(250);
+      traffics.SetLight(0, 4, ON);
+      traffics.ShowCommand();
+      delay(250);
+      traffics.SetLight(7, 4, ON);
+      traffics.ShowCommand();
+      delay(250);
+      traffics.SetLight(8, 4, ON);
+      traffics.ShowCommand();
+  }
 }
 
 bool dir = false;
@@ -575,7 +577,6 @@ void loop()
       Serial.println("----------------------------------------------------------");
       Serial.println("Оба поезда закончили движение, ожидание сигнала с часов");
       Serial.println("----------------------------------------------------------");
-      
       timer_is_end = millis();
       is_end = true;
       first_train_end = false;
