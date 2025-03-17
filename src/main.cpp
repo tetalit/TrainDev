@@ -331,7 +331,7 @@ void setup()
   timerAlarmEnable(DCC_timer);
   timerWrite(DCC_timer, 600);
   Serial.println("Таймер настроен");
-
+ 
   // Активация прерывания на ножке часов
   attachInterrupt(CLOCK_PIN, CLOCKINT, FALLING);
   Serial.println("Прерывния с часов активно");
@@ -351,23 +351,25 @@ void setup()
  for(int i = 0; i <= 3; i++){
       traffics.SetLight(1, 1, ON); // С1 = светофор № 1
       traffics.ShowCommand();
-      delay(250);
+      delay(500);
       traffics.SetLight(2, 2, ON); // С2 = светофор № 2
       traffics.ShowCommand();
-      delay(250);   
+      delay(500);   
       traffics.SetLight(3, 2, ON); // С3 = светофор № 3
       traffics.ShowCommand();
-      delay(250);
+      delay(500);
       traffics.SetLight(5, 1, ON); // С4 = светофор № 5 
       traffics.ShowCommand();
-      delay(250); 
+      delay(500); 
       traffics.SetLight(6, 1, ON);
       traffics.ShowCommand();
-      delay(250);
+      delay(500);
       traffics.SetLight(4, 4, ON);
       traffics.ShowCommand();
+      
   }
 }
+
 
 bool dir = false;
 
@@ -388,6 +390,7 @@ bool dir = false;
 
 void loop()
 {
+
   if (clock_flag)
   {
     if (first_task_flag)
@@ -596,5 +599,42 @@ void loop()
       digitalWrite(RAIL_R, LOW);
       wifi_m.ClearUDPBuffer();
     }
+
+  }
+  for (int tr_num = 1; tr_num < 7; tr_num++)
+  {
+    Serial.printf("TL %s on\n", String(tr_num));
+    traffics.SetLight(tr_num, 1, ON);
+    delay(100);
+    traffics.SetLight(tr_num, 2, ON);
+    delay(100);
+    traffics.SetLight(tr_num, 3, ON);
+    delay(100);
+    traffics.SetLight(tr_num, 4, ON);
+    delay(100);
+  }                               
+  traffics.SetLight(3, 2, ON); // 1 - красный 2 - жёлтый 3 - красный
+  traffics.ShowCommand();
+ delay(3000);
+
+  for (int tr_num = 1; tr_num < 7; tr_num++)
+  {
+    Serial.printf("TL %s off\n", String(tr_num));
+    traffics.SetLight(tr_num, 1, OFF);
+    delay(100);
+    traffics.ShowCommand();
+    delay(1000);
+    traffics.SetLight(tr_num, 2, OFF);
+    delay(100);
+    traffics.ShowCommand();
+    delay(1000);
+    traffics.SetLight(tr_num, 3, OFF);
+    delay(100);
+    traffics.ShowCommand();
+    delay(1000);
+    traffics.SetLight(tr_num, 4, OFF);
+    delay(100);
+    traffics.ShowCommand();
+    delay(1000);
   }
 }
